@@ -13,8 +13,6 @@ import java.util.List;
 public class FileActor extends AbstractActor {
 
     private ActorRef lineActor;
-    private ActorRef archiveActor;
-
 
     static public Props props(){
         return Props.create(FileActor.class, FileActor::new);
@@ -27,29 +25,23 @@ public class FileActor extends AbstractActor {
 
 //            System.out.println(Paths.get(fileMessage.fileName).toAbsolutePath()); //this was incorrect
 //            System.out.println(Paths.get("tmp\\"+ fileMessage.fileName).toAbsolutePath());
-//            try (Stream<String> stream = Files.lines(Paths.get("tmp\\"+fileMessage.fileName))) {
-//                stream.forEach(line-> lineActor.tell( new LineActor.LineMessage(fileMessage.fileName, line), self() ));
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-            
-            //fetch all file lines in Memory, so even if file gets deleted somehow we will be playing in memory
+
+            //fetch all file lines in Memory, so even if file gets deleted somehow it wont impact
             List<String> lines = Files.readAllLines(Paths.get("tmp\\"+fileMessage.fileName), Charset.defaultCharset());
 
-            //initialise lineActor with total number of lines
-            lineActor = getContext().system().actorOf(LineActor.props(lines.size()));
+            //ToDo: terminate the line actor??
+            //create new child lineActor with total number of lines
+            lineActor = getContext().actorOf(LineActor.props(lines.size()));
 
             for(String line: lines) lineActor.tell( new LineActor.LineMessage(fileMessage.fileName, line), self());
 
-
         }).match(FileCompletionMessage.class, fileCompletionMessage -> {
+            System.out.println("In File Actor File Processing COMPLETED for :: "+ fileCompletionMessage.fileName + " by "+ this.self() + "from ::" + this.sender());
+            // i.e. tell directory actor
+            this.getContext().getParent().tell( fileCompletionMessage,getSelf());
 
-            System.out.println("File Processing COMPLETED for :: "+ fileCompletionMessage.fileName + " by "+ this.self() + "from ::" + this.sender());
-
-            //create archiveActor for this actor
-            archiveActor = getContext().system().actorOf(ArchiveActor.props());
-            archiveActor.tell(new ArchiveActor.ArchiveMessage(fileCompletionMessage.fileName),self());
-
+            //Finally, stop this actor as file processing is completed and same is no longer required
+            this.context().stop(this.self());
         })
         .build();
     }
@@ -62,6 +54,10 @@ public class FileActor extends AbstractActor {
     static  public class FileCompletionMessage{
         private final String fileName;
         public FileCompletionMessage(String fileName) { this.fileName = fileName;}
+
+        public String getFileName() {
+            return fileName;
+        }
     }
 }
 

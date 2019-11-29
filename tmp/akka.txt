@@ -1,2 +1,0 @@
-Akka is cool
-Sushant is playing with Akka actors

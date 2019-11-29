@@ -4,38 +4,47 @@ import com.datastax.driver.core.Session;
 
 public class CassandraUtils {
 
-    public static String createKeyspaceQuery(String keyspaceName){
+    public static String getCreateKeyspaceQuery(String keyspaceName){
         return "CREATE KEYSPACE "+ keyspaceName + " WITH replication = {'class':'SimpleStrategy', 'replication_factor':1};";
     }
 
     public static void executeQuery(String keyspace, String query){
-        Session session = CassandraConnector.connect(keyspace);
+        Session session = CassandraConnector.connect(null);
 
-        if(keyspace!=null) session.execute("use " + keyspace);
+        if(session.getCluster().getMetadata().getKeyspace(keyspace) == null) {
+            createKeyspace(keyspace);
+            session = CassandraConnector.connect(keyspace);
+        }
+
+        session.execute("use " + keyspace);
         session.execute(query);
+        session.close();
     }
 
-    public static void drop(String keyspace){
+    public static void createKeyspace(String keyspace){
+        Session session = CassandraConnector.connect(null);
+        session.execute(getCreateKeyspaceQuery(keyspace));
+        System.out.println("Keyspace "+ keyspace +" created.");
+        session.close();
+    }
+
+    public static void dropKeyspace(String keyspace){
         Session session = CassandraConnector.connect(null);
 
         if (session.getCluster().getMetadata().getKeyspace(keyspace) != null){
-            CassandraUtils.executeQuery("system","drop keyspace "+ keyspace + ";");
-            System.out.println(keyspace +" dropped! ");
+            //We are switching to System keyspace first before dropping that keyspace
+            session.execute("drop keyspace "+ keyspace + ";");
+            System.out.println("Keypspace "+ keyspace +" dropped! ");
+        }else{
+            System.out.println("Keypspace "+ keyspace + " doesn't exists.");
         }
+        session.close();
 
     }
 
-    public static void createESTSchema(String keyspace){
-        String keyspaceQuery = CassandraUtils.createKeyspaceQuery(keyspace);
-
-        CassandraUtils.executeQuery(null,keyspaceQuery);
-        System.out.println(keyspace + " created.");
-
-        String createTableQuery = "create table estpurchases ( " +
-                " hhid  text primary key, cbpid  text, transactionid  text, equipmentid  text, equipmentname  text, eventcode  text, eventtype  text, providerid  text, genre  text, chargeamount  text, purchasedatetime  text, eventbillingdescription  text, commercialrate  text, facilitatorfee  text, eventstarttime  text, eventendtime  text, ppvtype  text, packagedescription  text, eventrating  text, userid  text, w3serviceprofileid  text, promotioncode  text, billingid  text, \n" +
-                " futureuse text); ";
-
-        CassandraUtils.executeQuery(keyspace, createTableQuery);
-        System.out.println(keyspace+ ":estpurchases created.");
+    public static void createTable(String keyspace, String tableDDL){
+        CassandraUtils.executeQuery(keyspace, tableDDL);
+        System.out.println("table created.");
     }
+
 }

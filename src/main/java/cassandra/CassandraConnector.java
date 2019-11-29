@@ -5,17 +5,11 @@ import com.datastax.driver.core.Session;
 
 public class CassandraConnector {
 
-
-    private static Cluster cluster;
+    private static Cluster cluster = Cluster.builder().addContactPoint("127.0.0.1").withPort(9042).build();
     private static Session session;
 
 
     public static Session connect(String keyspace){
-        Cluster.Builder builder  = Cluster.builder().addContactPoint("127.0.0.1");
-//        builder.withPort(9042);
-
-        cluster = builder.build();
-
         if(keyspace!=null) session = cluster.connect(keyspace);
         else session = cluster.connect();
 
@@ -26,8 +20,7 @@ public class CassandraConnector {
         return session;
     }
 
-    public void close(){
-        session.close();
-        cluster.close();
-    }
+    public void closeSession(){ session.close();}
+
+    public void closeCluster(){ cluster.close();}
 }
