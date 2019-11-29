@@ -47,4 +47,9 @@ public class CassandraUtils {
         System.out.println("table created.");
     }
 
+    public static void closeCluster(){
+        CassandraConnector.closeCluster();
+        System.out.println("Cassandra cluster closed.");
+    }
+
 }

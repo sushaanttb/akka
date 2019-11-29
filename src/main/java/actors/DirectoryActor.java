@@ -4,6 +4,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import cassandra.CassandraUtils;
 import utils.ESTConstants;
 
 import java.io.File;
@@ -16,6 +17,8 @@ public class DirectoryActor extends AbstractActor {
     private static final int BATCH_SIZE = 2;
     private ActorRef archiveActor;
     private ActorRef cassandraActor = getContext().actorOf(CassandraActor.props());
+    private static final long WAIT_TIME_BEFORE_FINAL_STOP = 5000L;   //5s
+
 
     static public Props props(){
         return Props.create(DirectoryActor.class, DirectoryActor::new);
@@ -35,10 +38,15 @@ public class DirectoryActor extends AbstractActor {
 
                 if(batchFiles.size()==0) {
                     System.out.println("Directory Processing COMPLETED for :: " + directoryMessage.directoryPath + " by " + this.self() + "from ::" + this.sender());
-//                    ToDo: need to check as not all EST messages are sent/processed till this is detected
-                    //this.self().tell(PoisonPill.getInstance(),this.getSelf());
-//                    ToDo: close cassandra connections
-                    System.out.println("Actor System given Poison pill as no files to process");
+//                  ToDo: need to check as not all EST messages are sent/processed till this is detected
+//                  todo: alternate for below
+                    Thread.sleep(WAIT_TIME_BEFORE_FINAL_STOP);
+
+                    CassandraUtils.closeCluster();
+
+                    this.context().system().terminate();
+                    System.out.println("Actor System terminated after "+WAIT_TIME_BEFORE_FINAL_STOP/1000 + "s as no more files to process");
+
                     return;
                 }
 
@@ -68,7 +76,7 @@ public class DirectoryActor extends AbstractActor {
         } )
         .build();
     }
-
+    
     public static class DirectoryMessage {
         private final String directoryPath;
         public DirectoryMessage(String directoryPath) { this.directoryPath = directoryPath;}

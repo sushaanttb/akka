@@ -16,11 +16,11 @@ public class CassandraConnector {
         return session;
     }
 
-    public Session getSession() {
+    public static Session getSession() {
         return session;
     }
 
-    public void closeSession(){ session.close();}
+    public static void closeSession(){ session.close();}
 
-    public void closeCluster(){ cluster.close();}
+    public static void closeCluster(){ cluster.close();}
 }
