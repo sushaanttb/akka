@@ -1,4 +1,4 @@
-A basic File Reader implementation using Akka Actors and Java8
+<h1> A basic File Reader implementation using Akka Actors and Java8 </h1>
 
 Purpose: Helps getting started with the "Actor Model" and modelling our typical programming use cases. 
 
